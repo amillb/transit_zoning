@@ -28,7 +28,7 @@ The analysis also uses data on BRT routes, Amtrak stations, subway station entra
 
 Organize the input data in the same way as this repository:
 - transit_data/
-  - GTFS/
+  - gtfs/
     - 2014/
       - agency1_feed.zip
       - agency2_feed.zip
