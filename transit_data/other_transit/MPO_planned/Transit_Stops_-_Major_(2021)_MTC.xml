@@ -1,0 +1,830 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+    <idinfo>
+        <citation>
+            <citeinfo>
+                <pubdate>20210301</pubdate>
+                <title>Transit Stops - Major (2021)</title>
+                <geoform>vector digital data</geoform>
+                <onlink>https://services3.arcgis.com/i2dkYWmb4wHvYPda/arcgis/rest/services/Transit_Stops_-_Major_(2021)/FeatureServer</onlink>
+            </citeinfo>
+        </citation>
+        <descript>
+            <abstract>This feature set contains major transit stops in the nine-county San 
+Francisco Bay Region as defined in the California Public Resources Code, Section 21064.3:
+An existing rail transit station, a ferry terminal served by either a
+ bus or rail transit service, or the intersection of two or more major 
+bus routes with a frequency of service interval of 15 minutes or less 
+during the morning and afternoon peak commute periods.
+The data set is a subset of the Transit Stops - Existing and Planned (2021) feature set. Major Stops were derived using the query major = 1. Major stops that are either planned or under construction are considered major based on service headways expected when the stop is in active service.See the Transit Stops GitHub page for a full description of the transit stops feature set and methodology used to develop it.</abstract>
+            <purpose>This layer represents major transit stops in the San Francisco Bay Region. The feature set is based on General Transit Feed Specification (GTFS) data downloaded January 2020.</purpose>
+        </descript>
+        <status>
+            <progress>Complete</progress>
+            <update>As needed</update>
+        </status>
+        <spdom>
+            <bounding>
+                <westbc>-122.7839000</westbc>
+                <eastbc>-121.5660900</eastbc>
+                <northbc>38.5095600</northbc>
+                <southbc>37.0034800</southbc>
+            </bounding>
+        </spdom>
+        <keywords>
+            <theme>
+                <themekt>ISO 19115 Topic Categories</themekt>
+                <themekey>transportation</themekey>
+            </theme>
+            <theme>
+                <themekt>None</themekt>
+                <themekey>transportation</themekey>
+                <themekey>planning</themekey>
+                <themekey>transit</themekey>
+                <themekey>major transit</themekey>
+                <themekey>bus stop</themekey>
+                <themekey>rail station</themekey>
+                <themekey>ferry terminal</themekey>
+                <themekey>light rail stop</themekey>
+            </theme>
+        </keywords>
+        <accconst>Other Constraints</accconst>
+        <useconst>This data is intended for planning purposes only. The Metropolitan Transportation Commission (MTC) provides spatial and attribute data (also referred to as"information") "as-is," and shall incur no responsibility or liability as to the completeness, currentness, or accuracy of this information. The MTC, and other agencies/cities/counties from which the data were sourced, assume no responsibility arising from use of this information by individuals, businesses, or other public entities. The data is provided with no warranty of any kind, expressed or implied, including but not limited to the implied warranties of merchantability and fitness for a particular purpose. Do not make any decisions based on this data before validating your decision with the appropriate city, county, or government entity.</useconst>
+        <ptcontac>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>Metropolitan Transportation Commission</cntorg>
+                    <cntper>Data &amp; Visualization</cntper>
+                </cntorgp>
+                <cntaddr>
+                    <addrtype>mailing and physical</addrtype>
+                    <address>375 Beale Street, Suite 800</address>
+                    <city>San Francisco</city>
+                    <state>California</state>
+                    <postal>94105</postal>
+                    <country>US</country>
+                </cntaddr>
+                <cntvoice>(415) 778-6700</cntvoice>
+                <cntemail>dataviz@bayareametro.gov</cntemail>
+                <hours>9:00 AM - 5:00 PM (PST) Monday through Friday</hours>
+            </cntinfo>
+        </ptcontac>
+        <datacred>Metropolitan Transportation Commission, 2021</datacred>
+        <native>Esri ArcGIS 12.7.0.26828</native>
+    </idinfo>
+    <dataqual>
+        <lineage>
+            <procstep>
+                <procdesc>Attribute table updates in the agency_nm (Agency Name), agency_id, status, committed, exp_open (Expected Opening), and ppa_nm (Project Performance Assessment Name) fields. No change to number of point features were made.</procdesc>
+                <procdate>20210805</procdate>
+            </procstep>
+            <procstep>
+                <procdesc>Stops with Project Performance Assessment Name Van Ness BRT were updated from ‘Under Construction’ to ‘Existing/Built’. Stops with Performance Assessment Name San Pablo BRT were relocated from approximate locations produced by MTC’s Travel Model network to locations that were consistent with the ESRI basemap street network. These features were also given names which were created from the two cross streets nearest the stop location. The San Pablo BRT stop locations are still approximate as the system is not yet designed and built.</procdesc>
+                <procdate>20220923</procdate>
+            </procstep>
+            <procstep>
+                <procdesc>agency_nm (Agency Name) field was updated to assign the name of the transit agency to Bus Rapid Transit (BRT) stops where agency_nm was NULL. This included some stops for the three existing and planned BRT routes in San Francisco, 23rd Street BRT in Contra Costa County, and El Camino BRT in San Mateo County.</procdesc>
+                <procdate>20220927</procdate>
+            </procstep>
+        </lineage>
+    </dataqual>
+    <spdoinfo>
+        <direct>Vector</direct>
+        <ptvctinf>
+            <sdtsterm>
+                <sdtstype>Entity point</sdtstype>
+                <ptvctcnt>0</ptvctcnt>
+            </sdtsterm>
+        </ptvctinf>
+    </spdoinfo>
+    <eainfo>
+        <detailed>
+            <enttyp>
+                <enttypl>transitstops_major_2021</enttypl>
+            </enttyp>
+            <attr>
+                <attrlabl>OBJECTID</attrlabl>
+                <attrdef>Internal feature number.</attrdef>
+                <attrdefs>Esri</attrdefs>
+                <attrdomv>
+                                        					
+                    
+                    <udom>Sequential unique whole numbers that are automatically generated.</udom>
+                                        				
+                
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>shape</attrlabl>
+                <attrdef>Feature geometry.</attrdef>
+                <attrdefs>Esri</attrdefs>
+                <attrdomv>
+                                        					
+                    
+                    <udom>Coordinates defining the features.</udom>
+                                        				
+                
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>agency_nm</attrlabl>
+                <attrdef>Full name of the transit agency. 
+
+Values were obtained from General Transit Feed Specification (GTFS) data downloaded from the Bay Area 511 GTFS API.</attrdef>
+                <attrdefs>Google Transit APIs - Static Transit (https://developers.google.com/transit/gtfs/reference#agencytxt)</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>agency_id</attrlabl>
+                <attrdef>Identifies a transit brand which is often synonymous with a transit agency. Note that in some cases, such as when a single agency operates multiple separate services, agencies and brands are distinct. This document uses the term "agency" in place of "brand." A dataset may contain data from multiple agencies. This field is required when the dataset contains data for multiple transit agencies, otherwise it is optional. 
+
+Values were obtained from General Transit Feed Specification (GTFS) data downloaded from the Bay Area 511 GTFS API.</attrdef>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>3D</edomv>
+                                                						
+                        
+                        <edomvd>Tri Delta Transit</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>AC</edomv>
+                                                						
+                        
+                        <edomvd>AC Transit (Alameda-Contra Costa Transit District)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>AM</edomv>
+                                                						
+                        
+                        <edomvd>Capitol Corridor Joint Powers Authority</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>BA</edomv>
+                                                						
+                        
+                        <edomvd>BART (Bay Area Rapid Transit)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>CC</edomv>
+                                                						
+                        
+                        <edomvd>County Connection</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>CE</edomv>
+                                                						
+                        
+                        <edomvd>ACE (Altamont Corridor Express)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>CM</edomv>
+                                                						
+                        
+                        <edomvd>Commute.org Shuttles</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>CT</edomv>
+                                                						
+                        
+                        <edomvd>Caltrain</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>DE</edomv>
+                                                						
+                        
+                        <edomvd>Dumbarton Express Consortium</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>EM</edomv>
+                                                						
+                        
+                        <edomvd>Emery Go-Round</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>FS</edomv>
+                                                						
+                        
+                        <edomvd>Fairfield and Suisun Transit</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>GF</edomv>
+                                                						
+                        
+                        <edomvd>Golden Gate Ferry</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>GG</edomv>
+                                                						
+                        
+                        <edomvd>Golden Gate Transit</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>MA</edomv>
+                                                						
+                        
+                        <edomvd>Marin Transit</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>MS</edomv>
+                                                						
+                        
+                        <edomvd>Stanford Marguerite Shuttle</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>PE</edomv>
+                                                						
+                        
+                        <edomvd>Petaluma Transit</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>RV</edomv>
+                                                						
+                        
+                        <edomvd>Rio Vista Delta Breeze</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SA</edomv>
+                                                						
+                        
+                        <edomvd>SMART (Sonoma Marin Area Rail Transit)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SB</edomv>
+                                                						
+                        
+                        <edomvd>San Francisco Bay Ferry</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SC</edomv>
+                                                						
+                        
+                        <edomvd>VTA (Santa Clara Valley Transportation Authority)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SF</edomv>
+                                                						
+                        
+                        <edomvd>SF Muni (San Francisco Municipal Transportation Agency)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SM</edomv>
+                                                						
+                        
+                        <edomvd>SamTrans</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SO</edomv>
+                                                						
+                        
+                        <edomvd>Sonoma County Transit</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SR</edomv>
+                                                						
+                        
+                        <edomvd>Santa Rosa CityBus</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>SS</edomv>
+                                                						
+                        
+                        <edomvd>South City Shuttle (City of South San Francisco)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>ST</edomv>
+                                                						
+                        
+                        <edomvd>SolTrans (Solano County Transit)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>TD</edomv>
+                                                						
+                        
+                        <edomvd>Tideline Water Taxi</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>UC</edomv>
+                                                						
+                        
+                        <edomvd>Union City Transit</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>VC</edomv>
+                                                						
+                        
+                        <edomvd>Vacaville City Coach</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>VN</edomv>
+                                                						
+                        
+                        <edomvd>VINE Transit (Valley Intercity Neighborhood Express Transit)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>WC</edomv>
+                                                						
+                        
+                        <edomvd>WestCat (Western Contra Costa County Transit)</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>route_l_nm</attrlabl>
+                <attrdef>Full name of a route. This name is generally more descriptive than the route_s_nm and often includes the route's destination or stop.
+
+Values were obtained from General Transit Feed Specification (GTFS) data downloaded from the Bay Area 511 GTFS API.</attrdef>
+                <attrdefs>Google Transit APIs - Static Transit (https://developers.google.com/transit/gtfs/reference#routestxt)</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>route_s_nm</attrlabl>
+                <attrdef>Short name of a route. This will often be a short, abstract identifier like "32", "100X", or "Green" that riders use to identify a route, but which doesn't give any indication of what places the route serves.
+
+Values were obtained from General Transit Feed Specification (GTFS) data downloaded from the Bay Area 511 GTFS API.</attrdef>
+                <attrdefs>Google Transit APIs - Static Transit (https://developers.google.com/transit/gtfs/reference#routestxt)</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>route_id</attrlabl>
+                <attrdef>Identifies a route. Format is Agency ID:Route Name (Short).
+
+Values were obtained from General Transit Feed Specification (GTFS) data downloaded from the Bay Area 511 GTFS API.</attrdef>
+                <attrdefs>Google Transit APIs - Static Transit (https://developers.google.com/transit/gtfs/reference#routestxt)</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>route_type</attrlabl>
+                <attrdef>Type of transportation used on route.</attrdef>
+                <attrdefs>Metropolitan Transporation Commission</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>stop_nm</attrlabl>
+                <attrdef>Name of the location. Use a name that people will understand in the local and tourist vernacular.
+
+When the location is a boarding area (location_type=4), the stop_name should contains the name of the boarding area as displayed by the agency. It could be just one letter (like on some European intercity railway stations), or text like “Wheelchair boarding area” (NYC’s Subway) or “Head of short trains” (Paris’ RER).
+
+Conditionally Required:
+• Required for locations which are stops (location_type=0), stations (location_type=1) or entrances/exits (location_type=2).
+• Optional for locations which are generic nodes (location_type=3) or boarding areas (location_type=4). 
+
+Values were obtained from General Transit Feed Specification (GTFS) data downloaded from the Bay Area 511 GTFS API.</attrdef>
+                <attrdefs>Google Transit APIs - Static Transit (https://developers.google.com/transit/gtfs/reference#stopstxt)</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>stop_id</attrlabl>
+                <attrdef>Identifies a stop, station, or station entrance.
+
+The term "station entrance" refers to both station entrances and station exits. Stops, stations or station entrances are collectively referred to as locations. Multiple routes may use the same stop. 
+
+Values were obtained from General Transit Feed Specification (GTFS) data downloaded from the Bay Area 511 GTFS API.</attrdef>
+                <attrdefs>Google Transit APIs - Static Transit (https://developers.google.com/transit/gtfs/reference#stopstxt)</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>am_av_hdwy</attrlabl>
+                <attrdef>Average time period, in minutes, a transit provider serves a stop during 6:00am and 10:00am peak commute period.</attrdef>
+                <attrdefs>Metropolitan Transportation Commission</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>pm_av_hdwy</attrlabl>
+                <attrdef>Average time period, in minutes, a transit provider serves a stop during 3:00pm and 7:00pm peak commute period.</attrdef>
+                <attrdefs>Metropolitan Transportation Commission</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>major_stop</attrlabl>
+                <attrdef>Designates whether the stop qualifies as a Major Transit Stop. 
+
+To qualify as a 'Major Transit Stop', as defined by California Public Resource Code Section 21064.3, a stop must be a rail or ferry stop, or the stop must be served by 2 or more transit routes with headways of 15 minutes or less during BOTH the AM (6:00 - 10:00 AM) and PM (3:00 - 7:00 PM) peak commute periods.</attrdef>
+                <attrdefs>Metropolitan Transportation Commission</attrdefs>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>0</edomv>
+                                                						
+                        
+                        <edomvd>Stop does not qualify as a Major Transit Stop.</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>1</edomv>
+                                                						
+                        
+                        <edomvd>Stop qualifies as a Major Transit Stop.</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>status</attrlabl>
+                <attrdef>Designates whether the transit stop is existing or planned.</attrdef>
+                <attrdefs>Metropolitan Transportation Commission</attrdefs>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>Existing/Built</edomv>
+                                                						
+                        
+                        <edomvd>Stop exists and is being served by at least one transit operator.</edomvd>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>Final Blueprint</edomv>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+                <attrdomv>
+                                        					
+                    
+                    <edom>
+                                                						
+                        
+                        <edomv>Under Construction</edomv>
+                                                					
+                    
+                    </edom>
+                                        				
+                
+                </attrdomv>
+            </attr>
+            <attr>
+                <attrlabl>committed</attrlabl>
+            </attr>
+            <attr>
+                <attrlabl>exp_open</attrlabl>
+                <attrdef>Year, or other date, that the stop is expected to open/begin service.</attrdef>
+            </attr>
+            <attr>
+                <attrlabl>ppa_id</attrlabl>
+                <attrdef>Identification value for planned transit stop in Horizon Project Performance Assessment: List of Transportation Projects (February 2020).</attrdef>
+                <attrdefs>Metropolitan Transportation Commission</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>ppa_nm</attrlabl>
+                <attrdef>Name of planned transit stop used in Horizon Project Performance Assessment: List of Transportation Projects (February 2020).</attrdef>
+                <attrdefs>Metropolitan Transportation Commission</attrdefs>
+            </attr>
+            <attr>
+                <attrlabl>pba50_id</attrlabl>
+                <attrdef>Identification value for planned transit stop in Plan Bay Area 2050.</attrdef>
+                <attrdefs>Metropolitan Transportation Commission</attrdefs>
+            </attr>
+        </detailed>
+    </eainfo>
+    <metainfo>
+        <metd>20220927</metd>
+        <metc>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>Metropolitan Transportation Commission</cntorg>
+                    <cntper>Data &amp; Visualization</cntper>
+                </cntorgp>
+                <cntaddr>
+                    <addrtype>mailing and physical</addrtype>
+                    <address>375 Beale Street, Suite 800</address>
+                    <city>San Francisco</city>
+                    <state>California</state>
+                    <postal>94105</postal>
+                    <country>US</country>
+                </cntaddr>
+                <cntvoice>(415) 778-6700</cntvoice>
+                <cntemail>dataviz@bayareametro.gov</cntemail>
+                <hours>9:00 AM - 5:00 PM (PST) Monday through Friday</hours>
+            </cntinfo>
+        </metc>
+        <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+        <metstdv>FGDC-STD-001-1998</metstdv>
+        <mettc>local time</mettc>
+    </metainfo>
+</metadata>

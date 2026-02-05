@@ -1,0 +1,73 @@
+amtrak.zip
+A zipped shapefile of Amtrak stations
+U.S. Department of Transportation Bureau of Transportation Statistics (2025, December 16). Amtrak Stations. National Transportation Atlas Database: Bureau of Transportation Statistics—Open Data Catalog. Retrieved June 1, 2025, from https://geodata.bts.gov/datasets/usdot::amtrak-stations/about.
+
+brt_routes.csv
+A list of routes identified by their agency as "bus rapid transit" (not "rapid bus") in public documentation (for use in the maximal approaches), in addition to those in the GTFS and statewide BRT files
+Created by authors from agency websites and public documentation
+
+CAHSR.zip
+A zipped shapefile of planned California high-speed rail station locations
+California High-speed Rail Authority (2025, December 17). HSR Train Stations. California State Geoportal: Unlocking the Power of Government Data. Retrieved February 2, 2026, from https://gis.data.ca.gov/datasets/7210a9f57f16407f8fdd4949ac90daea/explore?layer=0.
+
+extra_clockwise_routes.csv
+A list of route names to correct, so that clockwise and counterclockwise routes not already automatically merged by the code are also merged
+Created by authors from agency GTFS feeds
+
+GTFS feeds
+General Transit Feed Specification data for transit agencies in California
+Sourced from:
+Interline (2026). Transitland. Retrieved January 26, 2026, from https://www.transit.land/.
+MobilityData (2025). OpenMobilityData. Retrieved November 26, 2025, from https://transitfeeds.com/.
+MobilityData (2026). Mobility Database. Retrieved January 26, 2026, from https://mobilitydatabase.org/.
+
+MPO_data
+Shapefiles for planned major transit stops from the four largest metropolitan planning organizations in California
+MTC/ABAG (2025, December 3). San Francisco Bay Region Major Transit Stops. MTC Open Data Catalog. Retrieved February 2, 2026, from https://opendata.mtc.ca.gov/datasets/a9f1cffd6458433cbc150a99e1effd0a_0/about.
+SACOG (2020). 2020 MTP/SCS Existing and Planned Major Transit Stops. Open Data Portal: Your Gateway to SACOG GIS Data. Retrieved February 2, 2026, from https://portal.sacog.org/portal/apps/webappviewer/index.html?id=9df1c17713e546feb905c5d3493a3ea3.
+SANDAG GIS (2023, December 22). Travel Model Networks. ArcGIS Hub. Retrieved February 2, 2026, from https://hub.arcgis.com/maps/SANDAG::travelmodelnetworks/about.
+SCAG (2024, October 30). Major Transit Stops in the SCAG Region for Plan Year 2050. SCAG Regional Data Platform: Southern California’s Data and Engagement Hub for Planners. Retrieved February 2, 2026, from https://hub.scag.ca.gov/datasets/8bfbed890c91423cabe9ccc20369cdca_0/explore.
+
+parcels_combined_[YEAR].zip
+A zipped shapefile of station parcels, where the station is on a defined parcel, and station sites, where the station is not on a defined parcel, for each year
+Sourced from:
+Alameda County Information Technology Department (2026, February 1). Parcels. Alameda County Data Sharing Initiative. Retrieved February 2, 2026, from https://data.acgov.org/datasets/2b026350b5dd40b18ed7a321fdcdba81_0/about.
+Butte County (n.d.). Parcel Lookup. Butte County IT Department. Retrieved February 2, 2026, from https://gisportal.buttecounty.net/portal/apps/webappviewer/index.html?id=e8ee08e0672d48c8862fd3233e394027.
+Contra Costa County (2025, September). Maps and Property Information. Contra Costa County, California. Retrieved February 2, 2026, from https://www.contracosta.ca.gov/552/Maps-Property-Information.
+Fiacco, K. (2025, December 19). San Bernardino County. San Bernardino County Open Data Portal. Retrieved February 2, 2026, from https://open.sbcounty.gov/datasets/0b5ac95331bb4be29b2a1aa2a94abc7b_0/about.
+Fresno, County of (2026, January 23). Regional Parcels VW. County of Fresno Open Data Hub: Discover Free Public Data, Tools, and Resources from the County of Fresno. Retrieved February 2, 2026, from https://datasharing-cofgisonline.hub.arcgis.com/datasets/599a17ca02fe4781af4efe31edd81669_11/about.
+KC Assessor Main GIS (n.d.). Kings County Parcel Public Layer. County of Kings, California. Retrieved February 2, 2026, from https://kings-county.maps.arcgis.com/home/item.html?id=b17cd966a12c4eeaa881d7e50c72ea03.
+Kern, County of (2025, November 7). Parcel Maps. County of Kern: GEODAT Open Data and Portal for Smarter Communities. Retrieved February 2, 2026, from https://geodat-kernco.opendata.arcgis.com/datasets/27d216bcc38e474b8a3a78358b01f310_0/about.
+Llanos, C. (2025, August 13). Parcels. County of Shasta—Open Data Portal. Retrieved February 2, 2026, from https://data-shasta.opendata.arcgis.com/datasets/parcels/about.
+Los Angeles, County of (2025, July 2). Parcels. County of Los Angeles Open Data. Retrieved February 2, 2026, from https://data.lacounty.gov/documents/4d67b154ae614d219c58535659128e71/about.
+Madera County (n.d.). Geographic Information System (GIS). Madera County. Retrieved February 2, 2026, from https://www.maderacounty.com/government/geographic-information-system-gis.
+Marin County (2025, November 13). Parcels. Marin County GIS Open Data. Retrieved February 2, 2026, from https://gisopendata.marincounty.gov/datasets/b32c89cae86148b6b48ab4720a9cccbc_0/about.
+Merced County GIS (2024, September 24). Assessment Parcels. Merced County GIS Information Portal. Retrieved February 2, 2026, from https://geostack-mercedcounty.opendata.arcgis.com/datasets/77b6b3140b294189a2e606a2dcb6a515_42/about.
+MoCo GIS Admin (2025, December 5). Parcels. County of Monterey Open Data: Explore, Map, and Download Data. Retrieved February 2, 2026, from https://gis-montereyco.opendata.arcgis.com/datasets/187377b392e742208dc7dfeebc6bdc42_0/about.
+Nevada County, California Geographic Information Systems (n.d.). My Neighborhood 2.0. Nevada County, California. Retrieved February 2, 2026, from https://experience.arcgis.com/experience/45d30af79b1e45f792844b897a45131a/page/Page.
+Orange County Public Works (2024, September 9). Parcels with Attributes. Orange County: GIS Open Data Portal. Retrieved February 2, 2026, from https://data-ocpw.opendata.arcgis.com/datasets/e2c8332606da4e51ad941cacfd2c24ed_0/about.
+Placer, County of (2026, February 2). Public Parcels. Placer County Open Data:     Connecting Citizens to Information. Retrieved February 2, 2026, from https://gis-placercounty.opendata.arcgis.com/datasets/28c744130a1345fab9f464fc65cdd29c_2/about.
+Riverside County Mapping Portal (2023, September 21). Parcel Lines. Riverside County Mapping Portal. Retrieved February 2, 2026, from https://gisopendata-countyofriverside.opendata.arcgis.com/datasets/d53885b540f0444196356290a13a779d_60/about.
+Sacramento County GIS Admin (2026, February 1). Sacramento County GIS Open Data Site. Sacramento County Open Data Hub. Retrieved February 2, 2026, from https://data-sacramentocounty.opendata.arcgis.com/.
+San Francisco, City and County of (2026, February 2). Parcels—Active and Retired. DataSF: Open Data Portal. Retrieved February 2, 2026, from https://data.sfgov.org/Geographic-Locations-and-Boundaries/Parcels-Active-and-Retired/acdm-wktn/about_data.
+San Joaquin County Geographic Information Systems (2026, January 13). GIS Data Download. San Joaquin County Geographic Information Systems. Retrieved February 2, 2026, from https://sjmap.org/GISDataDownload.htm.
+San Mateo, County of (2024, August 14). Parcels. Open San Mateo County. Retrieved February 2, 2026, from https://data.smcgov.org/Government/Parcels/nr6j-72z7/about_data.
+SanGIS (2026, January 6). Parcels. Retrieved February 2, 2026, from https://geo.sandag.org/portal/home/item.html?id=032a5dcf654c4ccbb18711ad8a0ee754.
+Santa Barbara, County of (2026, January 6). Assessor Parcels Public. County of Santa Barbara Open Data: Discover Free Public Data, Tools, and Resources from County of Santa Barbara. Retrieved February 2, 2026, from https://open-data-cosb-ent.hub.arcgis.com/datasets/7a87bfc7a4cd4f98a039bd62c757e849_0/about.
+Santa Clara, County of (2025, October 28). Parcels. County of Santa Clara Open Data Portal. Retrieved February 2, 2026, from https://data.sccgov.org/Government/Parcels/796e-2446/about_data.
+Siskiyou County GIS (2025, January 2). Siskiyou Parcels Public. Siskiyou County Open Data: Discover Free Public Data, Tools, and Resources from Siskiyou County GIS. Retrieved February 2, 2026, from https://open-data-siskiyou.hub.arcgis.com/datasets/siskiyou::siskiyou-parcels-public/about.
+SLO County GIS (2024, June 28). SLO County Parcels. County of San Luis Obispo Open Data. Retrieved February 2, 2026, from https://opendata-slocounty.hub.arcgis.com/datasets/6d3da3a169a14f56bb6128c99ff5ed42_0/about.
+Solano ReGIS (n.d.). Data and Apps. Solano Regional GIS Consortium. Retrieved February 2, 2026, from https://regis.solanocounty.com/apps/.
+Sonoma, County of (2025, March 21). Parcels Public Shapefile. Sonoma County GIS. Retrieved February 2, 2026, from https://gis-sonomacounty.hub.arcgis.com/datasets/sonomacounty::parcels-public-shapefile/about.
+Stanislaus County (2025, April 10). Public Parcels. Stanislaus County Open Data: Discover GIS Applications and Data from Stanislaus County. Retrieved February 2, 2026, from https://open-data-stancounty-gis.hub.arcgis.com/datasets/stancounty-gis::public-parcels/about.
+Ventura, County of (2026, February 2). Parcels Monthly. Open Data County of Ventura: Discover Public Data, Tools, and Resources from County of Ventura GIS. Retrieved February 2, 2026, from https://venturacountydatadownloads-vcitsgis.hub.arcgis.com/datasets/e0721a09a7214788be60dc7f0834ea91_0/about.
+Yolo, County of (n.d.). Yolo County GIS Viewer. Retrieved February 2, 2026, from https://experience.arcgis.com/experience/1c0ae779a0f7456185f1910ef588d8fb.
+
+statewide_BRT_[YEAR].zip
+A zipped shapefile of bus rapid transit stations for each year that meet the definition of "bus rapid transit" in California Public Resources Code § 21060.2
+Created by authors from agency GTFS feeds
+
+subway_entrances_[YEAR].zip
+A zipped shapefile of subway entrance locations for each year, for underground stations that do not have a defined parcel as part of the station. Stations that do have a defined parcel as part of the station (often, an on-ground entrance plaza), are not included in these shapefiles and are instead included in the parcel shapefiles (even if there are other entrances not within the defined parcel).
+Created by authors from:
+OpenStreetMap (2025). OpenStreetMap. Retrieved February 2, 2026, from https://www.openstreetmap.org/.
