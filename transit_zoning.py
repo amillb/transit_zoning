@@ -33,12 +33,12 @@ testing = True # QA/QC for development. If True, csv files with routes and stops
 # Specify the directory where all the zipped GFTS feeds exist, and the other data (e.g., Amtrak)
 # You can adjust these paths if you want to keep the GTFS and other input data in another directory
 base_path = os.path.join(os.getcwd(), 'transit_data')
-gtfs_path = os.path.join(base_path, 'GTFS')
+gtfs_path = os.path.join(base_path, 'gtfs')
 output_path = os.path.join(os.getcwd(), 'transit_output')
 if not(os.path.exists(base_path)):
     raise Exception(f'transit_data directory not found. It should be a subdirectory in {os.get_cwd()}.')
 if not(os.path.exists(gtfs_path)):
-    raise Exception(f'GTFS directory not found. It should be a subdirectory in {base_path}.')
+    raise Exception(f'gtfs directory not found. It should be a subdirectory in {base_path}.')
 if not(os.path.exists(output_path)):
     os.mkdir(output_path)
 
