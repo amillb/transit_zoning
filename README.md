@@ -26,8 +26,8 @@ You'll need to obtain and download GTFS data for each agency for the relevant ye
 
 The analysis also uses data on BRT routes, Amtrak stations, subway station entrances, station parcels, and planned transit. These are all included in this repository in the `other_transit` directory. See `sources.txt` for sources and more details of the purpose of each file.
 
-Organize the input data as follows:
-- base_path/
+Organize the input data in the same way as this repository:
+- transit_data/
   - GTFS/
     - 2014/
       - agency1_feed.zip
@@ -39,6 +39,7 @@ Organize the input data as follows:
       - agency1_feed.zip
       - agency2_feed.zip
   - other_transit/
+      - files are included in this repository
      
 You can edit the code to add or remove the files that the code expects in `other_transit`. For example, you might want to include planned transit from other MPOs.
 
