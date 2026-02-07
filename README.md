@@ -2,7 +2,7 @@
 
 This code identifies high-quality transit areas (HQTAs) as defined under California state law. In general, HQTAs are within one half mile of a “major transit stop”: a rail, ferry, or bus rapid transit station, or the intersection of frequent bus routes.
 
-The definitions under state law leave much ambiguity. For example, what constitutes an "intersection" of bus routes? Over what period should frequency be calculated? Is the half mile measured from the platform or from the edge of the parcel on which the station sits (including parking lots)? We discuss these ambiguities in a UCLA Institute of Transportation Studies interactive storymap [LINK TO FOLLOW].
+The definitions under state law leave much ambiguity. For example, what constitutes an "intersection" of bus routes? Over what period should frequency be calculated? Is the half mile measured from the platform or from the edge of the parcel on which the station sits (including parking lots)? We discuss these ambiguities in a UCLA Institute of Transportation Studies [interactive storymap](http://its.ucla.edu/major-transit-stops).
 
 The code ingests GTFS files (in `.zip` format) and outputs polygons of HQTAs under both a restrictive ("minimal") and expansive ("maximal") interpretation of these ambiguities. It also ingests supplementary files that give the locations of Amtrak stations, subway station entrances, and more.
 
@@ -61,4 +61,4 @@ Contact [Adam Millard-Ball](https://millardball.its.ucla.edu)
 
 ## Citation
 If you use this code, please cite:
-Wasserman, J., Barrall, A., Millard-Ball, A., and Lee, A. (2026). “Stop” and Think about It: How the Different Interpretations of What Counts as a “Major Transit Stop” in California Make a Difference. [URL to come].
+Wasserman, J., Barrall, A., Millard-Ball, A., and Lee, A. (2026). “Stop” and Think about It: How the Different Interpretations of What Counts as a “Major Transit Stop” in California Make a Difference. http://its.ucla.edu/major-transit-stops
