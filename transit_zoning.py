@@ -23,9 +23,12 @@ import warnings
 
 # GTFS route types
 # includes Intercity Rail. Note we exclude 6 - Aerial lift, suspended cable car (e.g., gondola lift, aerial tramway)
+# https://gtfs.org/documentation/schedule/reference/#routestxt
 gtfs_route_types = {'rail':[0, 1, 2, 5, 7, 12], 
                'ferry': [4],
                'brt': [3]}
+gtfs_mode_names = {0:'light_rail', 1:'metro', 2:'rail', 3:'bus', 
+                   4:'ferry', 5:'cablecar', 7:'funicular', 12:'monorail' }
 minimal_route_types_excluded = [3,5] # exclude BRT and cable car, only from minimal
 
 testing = True # QA/QC for development. If True, csv files with routes and stops are saved
@@ -36,7 +39,7 @@ base_path = os.path.join(os.getcwd(), 'transit_data')
 gtfs_path = os.path.join(base_path, 'gtfs')
 output_path = os.path.join(os.getcwd(), 'transit_output')
 if not(os.path.exists(base_path)):
-    raise Exception(f'transit_data directory not found. It should be a subdirectory in {os.get_cwd()}.')
+    raise Exception(f'transit_data directory not found. It should be a subdirectory in {os.getcwd()}.')
 if not(os.path.exists(gtfs_path)):
     raise Exception(f'gtfs directory not found. It should be a subdirectory in {base_path}.')
 if not(os.path.exists(output_path)):
@@ -198,7 +201,18 @@ def load_and_combine_gtfs(gtfs_path, year, include_brt=True):
         rail['GTFS_filename'] = os.path.basename(fn)
         if len(rail)>0:
             combined_rail_ferry_brt_stations[fn] = gpd.GeoDataFrame(rail, geometry='geometry', crs='EPSG:4326')
+            assert combined_rail_ferry_brt_stations[fn].index.is_unique
+            # add frequencies
+            rail_freqs = trips[['trip_id','route_id']].set_index('trip_id').join(stop_times.set_index('trip_id'))
+            rail_freqs = routes[['route_id','agency_name','route_type']].set_index('route_id').join(rail_freqs.set_index('route_id'))
+            rail_freqs = rail_freqs[rail_freqs.route_type.isin(rail_ferry_gtfs_codes)].groupby(['agency_name','stop_id']).size()
+            rail_freqs = pd.DataFrame(rail_freqs, columns=['trains_perday']).reset_index(level=0)
+
+            combined_rail_ferry_brt_stations[fn] = combined_rail_ferry_brt_stations[fn].join(rail_freqs)
+            combined_rail_ferry_brt_stations[fn]['trains_perday'] = combined_rail_ferry_brt_stations[fn]['trains_perday'].fillna(0)
+            combined_rail_ferry_brt_stations[fn]['agency_name'] = combined_rail_ferry_brt_stations[fn]['agency_name'].fillna(','.join(routes['agency_name'].unique()))
             print('Found rail or ferry stations for ', fn)
+
 
     # Combine data
     combined_routes = pd.concat(combined_routes.values(), ignore_index=True)
@@ -258,7 +272,7 @@ def load_and_combine_gtfs(gtfs_path, year, include_brt=True):
         if not (brt.route_type==3).all(): # all should be bus
             raise Exception('BRT list includes non-bus routes')
         brt = gpd.GeoDataFrame(brt, geometry=gpd.points_from_xy(brt['stop_lon'], brt['stop_lat']), crs='EPSG:4326')
-        combined_rail_ferry_brt_stations = pd.concat([combined_rail_ferry_brt_stations, brt[['route_type', 'stop_name','geometry','GTFS_filename']]])
+        combined_rail_ferry_brt_stations = pd.concat([combined_rail_ferry_brt_stations, brt[['route_type', 'agency_name','stop_name','geometry','GTFS_filename']]])
     else:
         print('Skipping attempt to import brt_routes.csv')
 
@@ -288,9 +302,7 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
 
     # Filter routes for rail and ferry
     rail_ferry_brt_gdf = (feed.rail_ferry_brt_stations[feed.rail_ferry_brt_stations['route_type'].astype(int).isin(routes_to_include)]).copy()
-    rail_ferry_brt_gdf['qualify'] = rail_ferry_brt_gdf.route_type.apply(lambda x: 'rail_gtfs' if x in gtfs_route_types['rail'] 
-                                                                      else 'ferry_gtfs' if x in gtfs_route_types['ferry'] 
-                                                                      else 'brt_gtfs' if x in gtfs_route_types['brt'] else 'error')
+    rail_ferry_brt_gdf['qualify'] = rail_ferry_brt_gdf.route_type.map(gtfs_mode_names) + '_gtfs'
 
     # add BRT from shapefile
     brt_fn = os.path.join(base_path,'other_transit','statewide_BRT_'+year+'.zip') 
@@ -298,9 +310,10 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
     brt_gdf['tmp_idx'] = brt_gdf.index.values # to fill in NaNs in stop_id
     brt_gdf.stop_id = brt_gdf.stop_id.fillna(brt_gdf['tmp_idx'])
     brt_gdf['new_stop_id'] = 'brt_'+brt_gdf.agency_pri+'_'+brt_gdf.stop_id.astype(str)
+    brt_gdf.rename(columns={'agency_pri':'agency_name'}, inplace=True)
     brt_gdf.drop_duplicates(subset='geometry', inplace=True)  # some Omnitrans routes are duplicates
     brt_gdf.to_crs('EPSG:4326', inplace=True)
-    brt_gdf = brt_gdf[['new_stop_id','geometry']]    
+    brt_gdf = brt_gdf[['new_stop_id','agency_name','geometry']]    
     brt_gdf['qualify'] = 'brt_shapefile'
     rail_ferry_brt_gdf = pd.concat([rail_ferry_brt_gdf, brt_gdf])
 
@@ -464,8 +477,9 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
         qualifying_stops['pm_freq'] = pd.Series(qualifying_freqs_all[1])
         qualifying_stops.reset_index(level=1, inplace=True)
 
-    # Get stop details for qualifying stops
-    bus_peak_stops = qualifying_stops.join(feed.stops.set_index('new_stop_id')[['stop_lon','stop_lat','GTFS_filename']])
+    # Get stop details for qualifying stops and add agency name
+    bus_peak_stops = qualifying_stops.join(feed.stops.set_index('new_stop_id')[['stop_lon','stop_lat','GTFS_filename']]).reset_index()
+    bus_peak_stops = (bus_peak_stops.set_index('prefixed_route_id').join(bus_routes.set_index('prefixed_route_id')[['agency_name']])).reset_index().set_index('new_stop_id')
 
     # Create GeoDataFrame
     bus_peak_gdf = gpd.GeoDataFrame(
@@ -518,6 +532,7 @@ def identify_bus_stop_intersections(feed, bus_peak_gdf, mode='maximal', save_sto
     routenames = feed.routes[['prefixed_route_id','agency_name','route_name']].set_index('prefixed_route_id')
     routenames['agency_route'] = routenames.agency_name.fillna('') + ' ' + routenames.route_name
     routenames = routenames['agency_route'].to_dict()
+    agencynames = feed.routes.set_index('prefixed_route_id')['agency_name'].to_dict()
     
     # Get unique stops for initial spatial query (to avoid duplicates)
     unique_stops = bus_peak_gdf[~bus_peak_gdf.index.duplicated()]
@@ -576,6 +591,7 @@ def identify_bus_stop_intersections(feed, bus_peak_gdf, mode='maximal', save_sto
         
         # Add plain English route names and frequencies
         routes_at_stop1_english = [routenames.get(rr, str(rr)) for rr in routes_at_stop1]
+        agencies_at_stop1 = [agencynames.get(rr, str(rr)) for rr in routes_at_stop1]
         routes_at_nearby_stops_english = [routenames.get(rr, str(rr)) for rr in routes_at_nearby_stops.difference(routes_at_stop1)]
         all_routes_english = 'At stop: '+', '.join(routes_at_stop1_english) + '. Nearby: '+', '.join(routes_at_nearby_stops_english)
         am_freqs = ','.join([f"{bus_freqs.loc[(stop_id1,rr),'am_freq']:.2g}" for rr in routes_at_stop1])
@@ -603,7 +619,15 @@ def identify_bus_stop_intersections(feed, bus_peak_gdf, mode='maximal', save_sto
     joinDf.columns = ['prefixed_route_ids','am_freq','pm_freq']
     result = result.join(joinDf)
     result = result.to_crs(epsg=4326)  # Convert back to WGS84
-    
+
+    # Add agency
+    assert result.index.name == 'new_stop_id' and bus_peak_gdf.index.name == 'new_stop_id'
+    assert all(bus_peak_gdf[pd.isnull(bus_peak_gdf.agency_name)].prefixed_route_id.str.contains('Consolidated'))
+    agency_names = bus_peak_gdf.reset_index()[['new_stop_id','agency_name']].drop_duplicates()
+    agency_names.agency_name = agency_names.agency_name.fillna('Consolidated')
+    agency_names = agency_names.groupby('new_stop_id').agency_name.agg(', '.join)
+    result = result.join(agency_names)
+
     # Add qualify field
     result['qualify'] = f'Bus stops within {distance_threshold_feet} feet'
 
@@ -633,7 +657,8 @@ def merge_transit_stops(rail_ferry_brt_gdf, bus_stops_gdf, year, mode='maximal',
     assert bus_stops_gdf is not None and not bus_stops_gdf.empty
 
     combined_gdf = pd.concat([rail_ferry_brt_gdf, bus_stops_gdf])
-    combined_gdf = combined_gdf[['new_stop_id','qualify','stop_name','prefixed_route_ids', 'am_freq','pm_freq', 'geometry']]
+    combined_gdf = combined_gdf[['new_stop_id', 'qualify', 'agency_name', 'stop_name', 'prefixed_route_ids', 
+                                 'am_freq', 'pm_freq', 'trains_perday', 'geometry']]
 
     # Rename columns for shapefile compatibility if needed
     combined_gdf.rename(columns={
@@ -750,6 +775,5 @@ def export_all_routes():
 
 if __name__ == "__main__":
     
-    run_transit_zoning_pipeline(gtfs_path, output_path)
-    
+      run_transit_zoning_pipeline(gtfs_path, output_path)    
     
