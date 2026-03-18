@@ -532,7 +532,6 @@ def identify_bus_stop_intersections(feed, bus_peak_gdf, mode='maximal', save_sto
     routenames = feed.routes[['prefixed_route_id','agency_name','route_name']].set_index('prefixed_route_id')
     routenames['agency_route'] = routenames.agency_name.fillna('') + ' ' + routenames.route_name
     routenames = routenames['agency_route'].to_dict()
-    agencynames = feed.routes.set_index('prefixed_route_id')['agency_name'].to_dict()
     
     # Get unique stops for initial spatial query (to avoid duplicates)
     unique_stops = bus_peak_gdf[~bus_peak_gdf.index.duplicated()]
@@ -591,7 +590,6 @@ def identify_bus_stop_intersections(feed, bus_peak_gdf, mode='maximal', save_sto
         
         # Add plain English route names and frequencies
         routes_at_stop1_english = [routenames.get(rr, str(rr)) for rr in routes_at_stop1]
-        agencies_at_stop1 = [agencynames.get(rr, str(rr)) for rr in routes_at_stop1]
         routes_at_nearby_stops_english = [routenames.get(rr, str(rr)) for rr in routes_at_nearby_stops.difference(routes_at_stop1)]
         all_routes_english = 'At stop: '+', '.join(routes_at_stop1_english) + '. Nearby: '+', '.join(routes_at_nearby_stops_english)
         am_freqs = ','.join([f"{bus_freqs.loc[(stop_id1,rr),'am_freq']:.2g}" for rr in routes_at_stop1])
@@ -774,6 +772,6 @@ def export_all_routes():
     df[cols].to_csv(os.path.join(output_path, 'all_routes.csv'), index=False)
 
 if __name__ == "__main__":
-    
-      run_transit_zoning_pipeline(gtfs_path, output_path)    
+
+    run_transit_zoning_pipeline(gtfs_path, output_path)    
     
