@@ -14,10 +14,11 @@ numpy == 2.2.4
 pandas == 2.2.3
 geopandas == 1.0.1
 partridge == 1.1.2
+seaborn == 0.13.2
 ```
 To install with Anaconda:
 
-`conda install numpy=2.2.4 pandas=2.2.3 geopandas=1.0.1 pip`
+`conda install numpy=2.2.4 pandas=2.2.3 geopandas=1.0.1 seaborn=0.13.2 pip`
 
 `pip install partridge==1.1.2`
 

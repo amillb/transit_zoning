@@ -13,8 +13,11 @@ import partridge as ptg
 import pandas as pd
 import numpy as np
 import geopandas as gpd
+import seaborn as sns
+import matplotlib.pyplot as plt
 from datetime import datetime
 import os
+import math
 import warnings
 
 ##################
@@ -38,18 +41,28 @@ testing = True # QA/QC for development. If True, csv files with routes and stops
 base_path = os.path.join(os.getcwd(), 'transit_data')
 gtfs_path = os.path.join(base_path, 'gtfs')
 output_path = os.path.join(os.getcwd(), 'transit_output')
+figure_path = os.path.join(os.getcwd(), 'figures')
+incremental_output_path = os.path.join(output_path, 'incremental')
+
 if not(os.path.exists(base_path)):
     raise Exception(f'transit_data directory not found. It should be a subdirectory in {os.getcwd()}.')
 if not(os.path.exists(gtfs_path)):
     raise Exception(f'gtfs directory not found. It should be a subdirectory in {base_path}.')
-if not(os.path.exists(output_path)):
-    os.mkdir(output_path)
+for path in [output_path, incremental_output_path, figure_path]:
+    if not(os.path.exists(path)):
+        os.mkdir(path)
 
 # which years the analysis will be run for
 # each year's data is a subfolder in /GTFS
 yearlist = [fn.name for fn in os.scandir(gtfs_path) if fn.is_dir()]
-print(f'Found GTFS data for the following years: {', '.join(yearlist)}')
+print(f"Found GTFS data for the following years: {', '.join(yearlist)}")
 
+# define the individual steps that make up the differences between minimal and maximal
+# separate out increments by the function that they are used in
+peaks_increments = ['peak_definition', 'consolidate_infrequent']
+intersections_increments = ['stop_distance','intersecting_stops']
+stops_increments = ['railBRT_included', 'subway_entrances','parcels', 'planned_transit']
+all_increments = ['minimal'] + peaks_increments + intersections_increments + stops_increments
 
 
 
@@ -256,7 +269,7 @@ def load_and_combine_gtfs(gtfs_path, year, include_brt=True):
         
         # drop BRT routes that are consolidated, manually (e.g. MTS 201/202 are CW/CCW routes that are merged above)
         if not ('MTS', '202') in combined_routes.set_index(['agency_name','route_name']).index:
-            brt_list.drop(('MTS', '202'), inplace=True)
+            brt_list.drop(('MTS', '202'), errors='ignore', inplace=True)
         try:
             brt = combined_routes.set_index(['agency_name','route_name']).loc[brt_list.index][['prefixed_route_id','route_type']].reset_index().set_index('prefixed_route_id')
         except KeyError:
@@ -293,9 +306,18 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
     in GTFS files and all count for HQ transit stops. BRT routes are selected by name.
 
     Then, other geospatial data (Amtrak, other BRT lines, station parcels and points) are merged in too.
+
+    mode can be:
+    - minimal
+    - maximal
+    - a list of the incremental changes between minimal and maximal
+
     """
     # Define route types based on mode
     assert mode in ['maximal', 'minimal'] or isinstance(mode, list)
+    if isinstance(mode, list):
+        assert all([mm in stops_increments for mm in mode])
+
     routes_to_include = [item for sublist in gtfs_route_types.values() for item in sublist]
     if mode=='minimal' or (isinstance(mode, list) and 'railBRT_included' not in mode):
         routes_to_include = [rr for rr in routes_to_include if rr not in minimal_route_types_excluded]
@@ -353,7 +375,7 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
     print(f"Extracted {len(rail_ferry_brt_gdf)} rail, ferry, and BRT stops")
     return rail_ferry_brt_gdf
 
-def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
+def bus_stops_peak_hours(feed, mode='maximal', frequency=20, save_routes=False):
     """Step 3
     
     Identifies bus stops with frequent service during peak hours (morning and afternoon). 
@@ -368,6 +390,11 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
     
     # Only select bus routes
     assert mode in ['maximal', 'minimal'] or isinstance(mode, list)
+    if isinstance(mode, list):
+        assert all([mm in peaks_increments for mm in mode])
+    assert isinstance(frequency, int) # buses per hour
+
+
     bus_routes = feed.routes[feed.routes['route_type'].astype(int).isin([3,11])]  # Bus route_type = 3. Trolleybus is 11
     bus_trips = feed.trips[feed.trips['prefixed_route_id'].isin(bus_routes['prefixed_route_id'])]
     
@@ -381,7 +408,7 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
     secs_in_day = 24*60*60
     stop_times['time'] = pd.to_datetime(stop_times['arrival_time']%secs_in_day, unit='s')
     assert stop_times['time'].max()<=pd.to_datetime('1970-01-01 23:59:59')  # make sure within the 24 hr interval
-    print(f'Identifying frequent service at {len(stop_times)} stops in {mode} mode')
+    print(f'Identifying frequent service at {len(stop_times)} stops in {mode} mode at {frequency} min frequency')
     
     # Define peak periods based on mode
     if mode == 'minimal' or (isinstance(mode, list) and 'peak_definition' not in mode):
@@ -403,7 +430,12 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
         peak_counts = am_counts.merge(pm_counts, on=['new_stop_id', 'prefixed_route_id'], how='outer').fillna(0)
         
         # Filter stops with at least 9 AM trips AND 12 PM trips on any route - storing route information
-        qualifying_stops = peak_counts[(peak_counts['am_count'] >= 9) & (peak_counts['pm_count'] >= 12)][['new_stop_id','prefixed_route_id','am_count','pm_count']].drop_duplicates()
+        # That's for the default of 20 min headways
+        am_trips = math.floor(3*60/frequency)
+        pm_trips = math.floor(4*60/frequency)
+        print(f'Looking for {am_trips} AM and {pm_trips} PM trips')
+
+        qualifying_stops = peak_counts[(peak_counts['am_count'] >= am_trips) & (peak_counts['pm_count'] >= pm_trips)][['new_stop_id','prefixed_route_id','am_count','pm_count']].drop_duplicates()
         qualifying_stops.set_index('new_stop_id', inplace=True)
         qualifying_stops['am_freq'] = qualifying_stops.am_count / (am_end.hour-am_start.hour) 
         qualifying_stops['pm_freq'] = qualifying_stops.pm_count / (pm_end.hour-pm_start.hour) 
@@ -413,6 +445,10 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
             # we do the same as above, but just group by stop_id (not prefixed_route_id)
             infrequent_am_peak = am_peak.set_index(['new_stop_id','prefixed_route_id']).drop(qualifying_stops.set_index('prefixed_route_id', append=True).index)  
             infrequent_pm_peak = pm_peak.set_index(['new_stop_id','prefixed_route_id']).drop(qualifying_stops.set_index('prefixed_route_id', append=True).index) 
+
+            # drop routes that only run in AM or peak
+            infrequent_am_peak = infrequent_am_peak[infrequent_am_peak.index.isin(infrequent_pm_peak.index)]
+            infrequent_pm_peak = infrequent_pm_peak[infrequent_pm_peak.index.isin(infrequent_am_peak.index)]
 
             am_counts = infrequent_am_peak.groupby(['new_stop_id']).size().reset_index(name='am_count')
             pm_counts = infrequent_pm_peak.groupby(['new_stop_id']).size().reset_index(name='pm_count')
@@ -429,6 +465,7 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
     
     else:  # maximal mode
         assert mode=='maximal' or 'peak_definition' in mode
+        assert frequency==20 # different frequencies not implemented for maximal
         # Check for 3+ trips per hour in both AM and PM periods
         am_start = pd.to_datetime('1970-01-01 00:00:00')
         am_end = pd.to_datetime('1970-01-01 11:59:59')  # Fixed from 24:00:00
@@ -449,9 +486,9 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
         qualifying_stops_all = []  
         qualifying_freqs_all = []      
 
-        for period_start, period_end in ([am_start, pm_start], [am_end, pm_end]):
+        for period_start, period_end in ((am_start, am_end), (pm_start, pm_end)):
             # subset of trips for am or pm 
-            peak = stop_times[(stop_times['time'] >= period_start) & (stop_times['time'] < period_end)]
+            peak = stop_times[(stop_times['time'] >= period_start) & (stop_times['time'] <= period_end)]
             qualifying_stops = set()
             qualifying_freqs = {}
             infrequent_stop_routes = []
@@ -472,7 +509,7 @@ def bus_stops_peak_hours(feed, mode='maximal', save_routes=False):
 
             if mode=='maximal' or (isinstance(mode, list) and 'consolidate_infrequent' in mode):
                 # Can we combine any of these infrequent (non-qualifying) routes?
-                infrequent_stop_routes = pd.concat(infrequent_stop_routes) #if len(infrequent_stop_routes)>0 else pd.DataFrame() # need to add col names
+                infrequent_stop_routes = pd.concat(infrequent_stop_routes) if len(infrequent_stop_routes)>0 else pd.DataFrame(columns=peak.columns)
                 for stop_id, group in infrequent_stop_routes.groupby('new_stop_id'):
                     times = sorted(group['time'])
                     max_newroutes = 0
@@ -622,7 +659,7 @@ def identify_bus_stop_intersections(feed, bus_peak_gdf, mode='maximal', save_sto
         pm_freqs = ','.join([f"{bus_freqs.loc[(stop_id1,rr),'pm_freq']:.2g}" for rr in routes_at_stop1])
 
         # Implement minimal vs maximal logic
-        if mode == 'maximal':
+        if mode == 'maximal' or 'intersecting_stops' in mode:
             # If the stop and nearby stops have >1 route, it qualifies!
             if len(all_routes) > 1:
                 intersecting_stops.add(stop_id1)
@@ -662,9 +699,9 @@ def identify_bus_stop_intersections(feed, bus_peak_gdf, mode='maximal', save_sto
         saved_intersections.to_csv(os.path.join(output_path,'majorstops_'+mode+'.csv'))
     
     print(f"Found {len(result)} qualifying bus stops with intersections")
-    return result.reset_index()
+    return result.reset_index(), len(result)
 
-def merge_transit_stops(rail_ferry_brt_gdf, bus_stops_gdf, year, mode='maximal', include_planned=False, output_path=output_path):
+def merge_transit_stops(rail_ferry_brt_gdf, bus_stops_gdf, year, fn_suffix='maximal', include_planned=False, output_path=output_path):
     """Step #5
     
     Merge datasets
@@ -677,7 +714,8 @@ def merge_transit_stops(rail_ferry_brt_gdf, bus_stops_gdf, year, mode='maximal',
     assert rail_ferry_brt_gdf.crs=='EPSG:4326'
     assert bus_stops_gdf.crs=='EPSG:4326'
     assert bus_stops_gdf.new_stop_id.is_unique
-    assert bus_stops_gdf is not None and not bus_stops_gdf.empty
+    if bus_stops_gdf is not None and bus_stops_gdf.empty:
+        print('Warning: no intersecting bus stops found')
 
     combined_gdf = pd.concat([rail_ferry_brt_gdf, bus_stops_gdf])
     combined_gdf = combined_gdf[['new_stop_id', 'qualify', 'agency_name', 'stop_name', 'prefixed_route_ids', 
@@ -689,9 +727,9 @@ def merge_transit_stops(rail_ferry_brt_gdf, bus_stops_gdf, year, mode='maximal',
         'prefixed_route_ids':'route_ids'
     }, inplace=True)
     
-    # Save both GeoPackage and Shapefile with mode in filename
+    # Save both GeoPackage and Shapefile with fn_suffix in filename
     suffix = '_with_planned' if include_planned else ''
-    modename = '_'.join(mode) if isinstance(mode, list) else mode
+    modename = '_'.join(fn_suffix) if isinstance(fn_suffix, list) else fn_suffix
     combined_gdf.to_file(os.path.join(output_path, f"high_quality_stops_{modename}_{year}{suffix}.gpkg"), driver="GPKG", index=False)
     # Can't do this as geodataframe contains both points and polygons
     #combined_gdf.to_file(os.path.join(output_path, f"high_quality_stops_{modename}_{year}.shp"), driver="ESRI Shapefile", index=False)
@@ -699,7 +737,7 @@ def merge_transit_stops(rail_ferry_brt_gdf, bus_stops_gdf, year, mode='maximal',
     print(f"Saved merged stops to {output_path}")
     return combined_gdf
 
-def buffer_transit_stops(high_quality_stops_gdf, year, buffer_distance_miles=0.5, mode='maximal', include_planned=False, output_path=output_path):
+def buffer_transit_stops(high_quality_stops_gdf, year, buffer_distance_miles=0.5, fn_suffix='maximal', include_planned=False, output_path=output_path):
     """Step 6
     Creates a buffer around transit stops.
     These are the high-quality transit areas resulting from the stops
@@ -717,9 +755,9 @@ def buffer_transit_stops(high_quality_stops_gdf, year, buffer_distance_miles=0.5
     # Create output directory if it doesn't exist
     os.makedirs(output_path, exist_ok=True)
     
-    # Save both GeoPackage and Shapefile with mode in filename
+    # Save both GeoPackage and Shapefile with fn_suffix in filename
     suffix = '_with_planned' if include_planned else ''
-    modename = '_'.join(mode) if isinstance(mode, list) else mode
+    modename = '_'.join(fn_suffix) if isinstance(fn_suffix, list) else fn_suffix
     projected_gdf.to_file(os.path.join(output_path, f"buffered_stops_{modename}_{year}{suffix}.gpkg"), driver="GPKG", index=False)
     #projected_gdf.to_file(os.path.join(output_path, f"buffered_stops_{modename}_{year}{suffix}.shp"), driver="ESRI Shapefile", index=False)
     print(f"Saved buffered stops to {output_path}")
@@ -751,16 +789,16 @@ def run_transit_zoning_pipeline(gtfs_path=gtfs_path, output_path=output_path, ye
         print(f"Processing {mode} definition")
         rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=mode)
         bus_peaks = bus_stops_peak_hours(feed, mode=mode, save_routes=(testing and year=='2025'))
-        bus_intersections = identify_bus_stop_intersections(feed, bus_peaks, mode=mode, save_stops=(testing and year=='2025'))
+        bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode=mode, save_stops=(testing and year=='2025'))
 
-        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, mode=mode, output_path=output_path)
-        buffered = buffer_transit_stops(merged, year, mode=mode, output_path=output_path)
+        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=mode, output_path=output_path)
+        buffered = buffer_transit_stops(merged, year, fn_suffix=mode, output_path=output_path)
 
         if year=='2025' and mode=='maximal':
             # run a second time with the planned transit too
             rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=mode, include_planned=True)
-            merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, mode=mode, include_planned=True, output_path=output_path)
-            buffered = buffer_transit_stops(merged, year, mode=mode, include_planned=True, output_path=output_path)
+            merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=mode, include_planned=True, output_path=output_path)
+            buffered = buffer_transit_stops(merged, year, fn_suffix=mode, include_planned=True, output_path=output_path)
 
     print("Transit Zoning Pipeline completed successfully")
 
@@ -806,16 +844,8 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
     """
     
     feed = load_and_combine_gtfs(gtfs_path, year)
-
     results_individual = {}
     results_cumulative = {}
-
-    # separate out increments by the function that they are used in
-    stops_increments = ['railBRT_included', 'subway_entrances','parcels',
-                  'planned_transit']
-    peaks_increments = ['peak_definition', 'consolidate_infrequent']
-    intersections_increments = ['stop_distance','intersecting_stops']
-    all_increments = ['minimal'] + peaks_increments + intersections_increments + stops_increments
 
     for increment in all_increments:
         # run with just that increment
@@ -830,14 +860,14 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
             bus_peaks = bus_stops_peak_hours(feed, mode='minimal')
 
         if increment in intersections_increments:
-            bus_intersections = identify_bus_stop_intersections(feed, bus_peaks, mode=[increment])
+            bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode=[increment])
         else:
-            bus_intersections = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
+            bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
 
-        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, mode=increment, output_path=output_path)
-        buffered = buffer_transit_stops(merged, year, mode=increment, output_path=output_path)
+        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=increment, output_path=incremental_output_path)
+        buffered = buffer_transit_stops(merged, year, fn_suffix=increment, output_path=incremental_output_path)
         # calculate area under Albers and store
-        results_individual['increment'] = buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000
+        results_individual[increment] = float((buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000).iloc[0])
 
         # now, do a cumulative version
         cumulative_increments = all_increments[0:all_increments.index(increment)+1]
@@ -856,48 +886,133 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
         
         cumulative_intersections_increments = list(set(cumulative_increments).intersection(intersections_increments))
         if len(cumulative_intersections_increments)>0:
-            bus_intersections = identify_bus_stop_intersections(feed, bus_peaks, mode=cumulative_peaks_increments)
+            bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode=cumulative_intersections_increments)
         else:
-            bus_intersections = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
+            bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
 
-        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, mode='cum_'+increment, output_path=output_path)
-        buffered = buffer_transit_stops(merged, year, mode='cum_'+increment, output_path=output_path)
+        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix='cum_'+increment, output_path=incremental_output_path)
+        buffered = buffer_transit_stops(merged, year, fn_suffix='cum_'+increment, output_path=incremental_output_path)
 
         # now store the area of buffered
-        results_cumulative['increment'] = buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000
+        results_cumulative[increment] = float((buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000).iloc[0])
 
     # save to disk
     results_cumulative = pd.DataFrame.from_dict(results_cumulative, orient='index',columns=['area_km2'])
+    results_cumulative['cumulative'] = True
     results_individual = pd.DataFrame.from_dict(results_individual, orient='index',columns=['area_km2'])
-    pd.concat([results_individual,results_cumulative ]).to_csv(output_path+'incremental_area.csv')
+    results_individual['cumulative'] = False
+    result = pd.concat([results_individual,results_cumulative ])
+    result.index.name = 'increment'
+    result.to_csv(incremental_output_path+'/incremental_area.csv')
+
+    increments_figure()
+
+def increments_figure():
+    """Figure for journal article of the individual and cumulative contribution of each increment"""
+
+    label_dict = {'minimal':'baseline', 'peak_definition': 'expand peak\ndefinition',
+                  'consolidate_infrequent': 'merge infrequent\nroutes',
+                  'stop_distance': 'distance\nbetween stops',
+                  'intersecting_stops': 'intersect at\nsame stop',
+                  'railBRT_included': 'more rail and\nBRT routes',
+                  'subway_entrances': 'subway\nentrances',
+                  'parcels': 'stations\nas parcels',
+                  'planned_transit': 'planned transit'}
+
+    df = pd.read_csv(incremental_output_path+'/incremental_area.csv', index_col='increment')
+    baseline = df[df.cumulative].loc['minimal','area_km2']
+    df['pct_increase'] = (df.area_km2 - baseline) / baseline * 100
+
+    plotdf = df[df.cumulative==False].sort_values(by='area_km2')
+    plotdf = plotdf.drop('minimal')
+    
+    fig, ax = plt.subplots(figsize = (6,4))
+    sns.barplot(plotdf.reset_index(), x = 'pct_increase', y='increment', ax=ax)
+
+    ax.set_xlabel('increase in land area (per cent)')
+    ax.set_yticklabels([label_dict[lab.get_text()] for lab in ax.get_yticklabels()], 
+                       fontsize=9,
+                       ha='right', )# rotation=70,  rotation_mode='anchor')
+    ax.set_ylabel('')
+    
+    plt.tight_layout()
+    fig.savefig(figure_path+'/incremental_changes.jpg', dpi=600)
+
+    plotdf = df[df.cumulative==True].copy()
+    plotdf['lower_bar'] = plotdf.area_km2.shift(1)
+    plotdf.fillna({'lower_bar':0}, inplace=True)
+    plotdf['bar_height'] = plotdf.area_km2 - plotdf.lower_bar
+
+    fig, ax = plt.subplots(figsize = (6,4))
+    ax.barh(y=plotdf.index, width=plotdf.bar_height, left=plotdf.lower_bar)
+    for ii, lab in enumerate(plotdf.index.values):
+        if ii==0: 
+            ax.text(plotdf.loc[lab,'lower_bar']+100, ii, label_dict[lab], size=8, ha='left', va='center')
+        else:
+            ax.text(plotdf.loc[lab,'lower_bar']-100, ii, label_dict[lab], size=8, ha='right', va='center')
+        
+    ax.set_yticks([])
+    ax.set_xlabel('land area (sq km)')
+
+    plt.tight_layout()
+    fig.savefig(figure_path+'/cumulative_changes.jpg', dpi=600)
+
+def frequency_analysis(gtfs_path=gtfs_path, year='2025'):
+    """Gradually change the number of buses in the peak period 
+    to see impacts of frequency changes"""
+
+    areas, n_intersections = {}, {}
+    feed = load_and_combine_gtfs(gtfs_path, year)
+    rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode='minimal')
+    
+    # frequency is defined in terms of headways (mins between buses)
+    # averaged over the AM and PM hours
+    for frequency in range(1,31):
+        print(f'\nAnalyzing {frequency} minute frequency')
+        bus_peaks = bus_stops_peak_hours(feed, mode='minimal', frequency=frequency)
+        bus_intersections, n_intersections[frequency] = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
+        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=f'frequency{frequency}', output_path=incremental_output_path)
+        buffered = buffer_transit_stops(merged, year, fn_suffix=f'frequency{frequency}', output_path=incremental_output_path)
+        areas[frequency] = float((buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000).iloc[0])
+
+    areas = pd.DataFrame.from_dict(areas, orient='index',columns=['area_km2'])
+    n_intersections = pd.DataFrame.from_dict(n_intersections, orient='index',columns=['n_intersections'])
+    results = areas.join(n_intersections)
+    results.index.name = 'frequency'
+
+    results.to_csv(incremental_output_path+'/frequency_area.csv')
+
+    frequency_figure()
+
+def frequency_figure():
+    """Figure for journal article on the impact of increasing frequency"""
+    df = pd.read_csv(incremental_output_path+'/frequency_area.csv', index_col='frequency')
+
+    fig, ax = plt.subplots(figsize = (6,4))
+    ax2 = ax.twinx()
+    sns.barplot(df, x=df.index, y='area_km2', alpha=0.8, ax=ax)
+
+    sns.lineplot(df, x=range(len(df)), y='n_intersections', color='k', lw=2, ax=ax2 )
+
+    
+    ax.set_xticks(range(4,30,5)) # offset by 1
+    ax.set_xlabel('peak headway (minutes)')
+    ax.set_ylabel('land area (sq km)')
+    ax2.set_ylabel('number of bus stops', rotation=270, labelpad=15)
+    ax.set_xlim(-0.5,29.5)
 
 
-
-
-
-    """ what are changes?
-    rail_ferry_brt
-        GTFS routes_to_include
-        Amtrak
-        include_planned (inc HSR)
-        subway entrances
-        station parcels
-
-    bus_stops_peak_hours
-        definition of a peak period
-        consolidate_infrequent
-
-    identify_bus_stop_intersections
-        distance threshold
-        exclude routes that stop at the same stop
-
-    """
-
+    plt.tight_layout()
+    fig.savefig(figure_path+'/frequency_changes.jpg', dpi=600)
 
 
 
 if __name__ == "__main__":
 
+    # this is for the story map analysis (multiple years)
     run_transit_zoning_pipeline(gtfs_path, output_path) 
+
+    # for the academic paper (breaks the differences down into increments)
+    frequency_analysis()
     run_incremental_changes()
     
