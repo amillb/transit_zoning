@@ -133,7 +133,7 @@ def load_and_combine_gtfs(gtfs_path, year, include_brt=True):
         # fill NaNs for arrival times. This is the case in some older feeds (e.g. Omnitrans) that only have times for time points
         if pd.isnull(stop_times.arrival_time).any():
             assert pd.notnull(stop_times.trip_id).all() and pd.notnull(stop_times.stop_sequence).all()
-            stop_times.sort_values(by=['trip_id','arrival_time'], inplace=True)
+            stop_times.sort_values(by=['trip_id','stop_sequence'], inplace=True)
             stop_times.arrival_time = stop_times.arrival_time.fillna(stop_times.departure_time)
             stop_times.arrival_time = stop_times.groupby('trip_id').arrival_time.ffill() 
 
@@ -239,6 +239,8 @@ def load_and_combine_gtfs(gtfs_path, year, include_brt=True):
         combined_rail_ferry_brt_stations = pd.DataFrame(columns=['route_type', 'stop_name', 'geometry', 'GTFS_filename'])
 
     # Merge frequencies into trips if available
+    # verified that headway_secs is almost never used, and only on low-frequency routes
+    # so we ignore this complication    
     if len(combined_frequencies)>0:
         combined_frequencies = pd.concat(combined_frequencies.values(), ignore_index=True)
         combined_trips = combined_trips.merge(
@@ -454,7 +456,7 @@ def bus_stops_peak_hours(feed, mode='maximal', frequency=20, save_routes=False):
             pm_counts = infrequent_pm_peak.groupby(['new_stop_id']).size().reset_index(name='pm_count')
             peak_counts = am_counts.merge(pm_counts, on=['new_stop_id'], how='outer').fillna(0)
         
-            infrequent_qualifying_stops = peak_counts[(peak_counts['am_count'] >= 9) & (peak_counts['pm_count'] >= 12)][['new_stop_id','am_count','pm_count']].drop_duplicates()
+            infrequent_qualifying_stops = peak_counts[(peak_counts['am_count'] >= am_trips) & (peak_counts['pm_count'] >= pm_trips)][['new_stop_id','am_count','pm_count']].drop_duplicates()
             infrequent_qualifying_stops.set_index('new_stop_id', inplace=True)
             infrequent_qualifying_stops['prefixed_route_id'] = 'Consolidated'
             infrequent_qualifying_stops['am_freq'] = infrequent_qualifying_stops.am_count / (am_end.hour-am_start.hour) 
