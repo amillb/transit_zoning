@@ -347,9 +347,7 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
         fns += [('amtrak.zip','amtrak')]
     if mode=='maximal' or 'subway_entrances' in mode:
         fns += [('subway_entrances_'+year+'.zip','subway_entrance')]
-    if mode=='maximal' or 'parcels' in mode:
-        fns += [('parcels_combined_'+year+'.zip', 'station_parcel')]
-    if include_planned or 'planned_transit' in mode:
+    if include_planned:
         assert year=='2025'
         fns+=[('CAHSR.zip','hsr'),
                 ('MPO_planned/2020_MTP_SCS_Planned_Major_Transit_Stops_SACOG.shp','SACOG'),
@@ -357,6 +355,19 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
                 ('MPO_planned/Major_Transit_Stops_in_the_SCAG_Region_for_plan_year_2050.shp','SCAG'),
                 ('MPO_planned/TPA_stops_2035build_SANDAG.shp','SANDAG'),
                 ('MPO_planned/transitstops_2021_existing_planned_MTC.shp','MTC'),]
+    if 'planned_transit' in mode:
+        # this is subtly different from include_planned (which was for the storymap)
+        # uses a subset of the stations that are NOT open
+        assert year=='2025' and include_planned is False
+        fns+=[('CAHSR.zip','hsr'),
+                ('MPO_planned/MPO_planned_rail_only/SACOG_rail_planned.zip','SACOG'),
+                ('MPO_planned/MPO_planned_rail_only/SCAG_rail_planned.zip','SCAG'),
+                ('MPO_planned/MPO_planned_rail_only/SANDAG_rail_planned.zip','SANDAG'),
+                ('MPO_planned/MPO_planned_rail_only/MTC_rail_planned.zip','MTC'),]
+
+    if mode=='maximal' or 'parcels' in mode:
+        # do this last because we might restrict to parcels that are included in the points above
+        fns += [('parcels_combined_'+year+'.zip', 'station_parcel')]
 
     for fn, prefix in fns:
         rail_gdf = gpd.read_file(os.path.join(base_path, 'other_transit', fn))
@@ -365,13 +376,32 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
         rail_gdf.to_crs('EPSG:4326', inplace=True)
         if 'amtrak' in fn:
             rail_gdf = rail_gdf[(rail_gdf.StnType=='TRAIN') & (rail_gdf.State=='CA') & (rail_gdf.StaType!='Curbside Bus Stop only (no shelter)')]
-        if 'CAHSR' in fn:
+            rail_gdf['stop_name'] = rail_gdf.StationNam
+            rail_gdf['new_stop_id'] = 'amtrak_'+rail_gdf.StationNam.str.lower().str.replace(', ','_').str.replace(' ','_')
+        elif 'CAHSR' in fn:
+            rail_gdf['stop_name'] = rail_gdf.Stat_Name
             rail_gdf['new_stop_id'] = prefix+'_'+rail_gdf.Stat_Name
         else:
+            rail_gdf['stop_name'] = None
             rail_gdf['new_stop_id'] = prefix+'_'+rail_gdf.index.astype(str)
-        rail_gdf = rail_gdf[['new_stop_id','geometry']]
+
+        if 'parcels' in fn and 'parcels' in mode:
+            # this is the incremental analysis. Need to restrict the parcels to the stations
+            # that we are actually including in the analysis, using a spatial join
+            # we could match by name, but that's not perfect either
+            union_geom = rail_ferry_brt_gdf.to_crs(32611).union_all() # all rail/BRT stations
+
+            # dissolve adjacent parcels (for purposes of the distance calculation)
+            rail_gdf.geometry = rail_gdf.geometry.force_2d()
+            rail_gdf = rail_gdf[['stop_name','geometry']].dissolve().explode().reset_index()
+            rail_gdf['new_stop_id'] = prefix+'_'+rail_gdf.index.astype(str)
+            
+            # tolerance of 0.75km as some parking lot parcels (e.g., Pleasant Hill) are within this range
+            rail_gdf = rail_gdf[rail_gdf.to_crs(32611).dwithin(union_geom, 750)] 
+
+        rail_gdf = rail_gdf[['stop_name','new_stop_id','geometry']]
         rail_gdf['qualify'] = prefix
-        
+
         rail_ferry_brt_gdf = pd.concat([rail_ferry_brt_gdf, rail_gdf])
 
     print(f"Extracted {len(rail_ferry_brt_gdf)} rail, ferry, and BRT stops")
