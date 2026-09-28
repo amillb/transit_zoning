@@ -64,7 +64,14 @@ intersections_increments = ['stop_distance','intersecting_stops']
 stops_increments = ['railBRT_included', 'subway_entrances','parcels', 'planned_transit']
 all_increments = ['minimal'] + peaks_increments + intersections_increments + stops_increments
 
-
+# graphics parameters
+uclablue = '#2774AE'
+figfont = 'Karbon'
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = [figfont]
+plt.rcParams['axes.labelsize'] = 12     
+plt.rcParams['xtick.labelsize'] = 9    
+plt.rcParams['ytick.labelsize'] = 9    
 
 class GTFSFeed:
     """A custom GTFS object for handling concatenated GTFS tables."""
@@ -942,14 +949,14 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
 def increments_figure():
     """Figure for journal article of the individual and cumulative contribution of each increment"""
 
-    label_dict = {'minimal':'baseline', 'peak_definition': 'expand peak\ndefinition',
-                  'consolidate_infrequent': 'merge infrequent\nroutes',
-                  'stop_distance': 'distance\nbetween stops',
-                  'intersecting_stops': 'intersect at\nsame stop',
-                  'railBRT_included': 'more rail and\nBRT routes',
-                  'subway_entrances': 'subway\nentrances',
-                  'parcels': 'stations\nas parcels',
-                  'planned_transit': 'planned transit'}
+    label_dict = {'minimal':'Baseline', 'peak_definition': 'Expand peak\ndefinition',
+                  'consolidate_infrequent': 'Merge infrequent\nroutes',
+                  'stop_distance': 'Increase\ntransfer distance',
+                  'intersecting_stops': 'Include\nshared stops',
+                  'railBRT_included': 'Expand rail/BRT\ndefinition',
+                  'subway_entrances': 'Add subway\nentrances',
+                  'parcels': 'Map stations\nas parcels',
+                  'planned_transit': 'Add planned\nrail transit'}
 
     df = pd.read_csv(incremental_output_path+'/incremental_area.csv', index_col='increment')
     baseline = df[df.cumulative].loc['minimal','area_km2']
@@ -959,35 +966,44 @@ def increments_figure():
     plotdf = plotdf.drop('minimal')
     
     fig, ax = plt.subplots(figsize = (6,4))
-    sns.barplot(plotdf.reset_index(), x = 'pct_increase', y='increment', ax=ax)
+    sns.barplot(plotdf.reset_index(), x = 'pct_increase', y='increment', ax=ax, 
+                color=uclablue)
 
-    ax.set_xlabel('increase in land area (per cent)')
+    ax.set_xlabel('Land area covered by zoning incentives')
+    ax.set_xticklabels([f'+{cc.get_text()}%' for cc in ax.get_xticklabels()])
     ax.set_yticklabels([label_dict[lab.get_text()] for lab in ax.get_yticklabels()], 
-                       fontsize=9,
-                       ha='right', )# rotation=70,  rotation_mode='anchor')
+                          ha='right', )# rotation=70,  rotation_mode='anchor')
     ax.set_ylabel('')
     
     plt.tight_layout()
-    fig.savefig(figure_path+'/incremental_changes.jpg', dpi=600)
-
+    fn = figure_path+'/standalone_changes'
+    fig.savefig(fn+'.jpg', dpi=600)
+    fig.savefig(fn+'.svg')
+    
     plotdf = df[df.cumulative==True].copy()
     plotdf['lower_bar'] = plotdf.area_km2.shift(1)
     plotdf.fillna({'lower_bar':0}, inplace=True)
     plotdf['bar_height'] = plotdf.area_km2 - plotdf.lower_bar
 
     fig, ax = plt.subplots(figsize = (6,4))
-    ax.barh(y=plotdf.index, width=plotdf.bar_height, left=plotdf.lower_bar)
+    ax.barh(y=plotdf.index, width=plotdf.bar_height, left=plotdf.lower_bar, 
+            color=uclablue)
     for ii, lab in enumerate(plotdf.index.values):
         if ii==0: 
-            ax.text(plotdf.loc[lab,'lower_bar']+100, ii, label_dict[lab], size=8, ha='left', va='center')
+            ax.text(plotdf.loc[lab,'lower_bar']+100, ii, label_dict[lab], 
+                    size=9, ha='left', va='center', font=figfont)
         else:
-            ax.text(plotdf.loc[lab,'lower_bar']-100, ii, label_dict[lab], size=8, ha='right', va='center')
-        
+            ax.text(plotdf.loc[lab,'lower_bar']-100, ii, label_dict[lab], 
+                    size=9, ha='right', va='center', font=figfont)
+
+    ax.tick_params(axis='x')
     ax.set_yticks([])
-    ax.set_xlabel('land area (sq km)')
+    ax.set_xlabel('Land area covered by zoning incentives (sq km)')
 
     plt.tight_layout()
-    fig.savefig(figure_path+'/cumulative_changes.jpg', dpi=600)
+    fn = figure_path+'/cumulative_changes'
+    fig.savefig(fn+'.jpg', dpi=600)
+    fig.savefig(fn+'.svg')
 
 def frequency_analysis(gtfs_path=gtfs_path, year='2025'):
     """Gradually change the number of buses in the peak period 
@@ -1020,23 +1036,41 @@ def frequency_figure():
     """Figure for journal article on the impact of increasing frequency"""
     df = pd.read_csv(incremental_output_path+'/frequency_area.csv', index_col='frequency')
 
+    # get value for horizontal lines
+    busrail = df.loc[1,'area_km2']
+    minimal = pd.read_csv(incremental_output_path+'/incremental_area.csv', index_col='increment')
+    minimal = minimal[minimal.cumulative].loc['minimal','area_km2']
+
+    txt1 = f'{busrail:.0f} km\N{SUPERSCRIPT TWO} with\nrail, BRT, and\nferry only'
+    txt2 = f'{minimal:.0f} km\N{SUPERSCRIPT TWO} under\nminimal definition'
+
+
     fig, ax = plt.subplots(figsize = (6,4))
     ax2 = ax.twinx()
-    sns.barplot(df, x=df.index, y='area_km2', alpha=0.8, ax=ax)
+    sns.barplot(df, x=df.index, y='area_km2', alpha=0.7, ax=ax, color=uclablue)
 
     sns.lineplot(df, x=range(len(df)), y='n_intersections', color='k', lw=2, ax=ax2 )
 
-    
     ax.set_xticks(range(4,30,5)) # offset by 1
-    ax.set_xlabel('peak headway (minutes)')
-    ax.set_ylabel('land area (sq km)')
-    ax2.set_ylabel('number of bus stops', rotation=270, labelpad=15)
-    ax.set_xlim(-0.5,29.5)
+    ax2.set_yticks(range(0,7000,2000))
+    
+    ax.set_xlabel('Peak headway (minutes)')
+    ax.set_ylabel('Land area (sq km)')
+    ax2.set_ylabel('Number of bus stops', rotation=270, labelpad=15)
+    xlims = (-0.5,29.5)
+    ax.set_xlim(xlims)
+    ax.tick_params(axis='y')
+    ax2.tick_params(axis='y')
+    ax2.set_ylim(bottom=0)
+    ax.hlines([minimal, busrail], xlims[0], xlims[1], color=uclablue, linestyles='--', lw=1)
 
+    ax.text(1, busrail+50, txt1, color=uclablue)
+    ax.text(1, minimal+50, txt2, color=uclablue)
 
     plt.tight_layout()
-    fig.savefig(figure_path+'/frequency_changes.jpg', dpi=600)
-
+    fn = figure_path+'/frequency_changes'
+    fig.savefig(fn+'.jpg', dpi=600)
+    fig.savefig(fn+'.svg')
 
 
 if __name__ == "__main__":
