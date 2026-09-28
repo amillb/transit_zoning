@@ -15,7 +15,7 @@ import numpy as np
 import geopandas as gpd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, date
 import os
 import math
 import warnings
@@ -40,15 +40,15 @@ testing = True # QA/QC for development. If True, csv files with routes and stops
 # You can adjust these paths if you want to keep the GTFS and other input data in another directory
 base_path = os.path.join(os.getcwd(), 'transit_data')
 gtfs_path = os.path.join(base_path, 'gtfs')
-output_path = os.path.join(os.getcwd(), 'transit_output')
+output_path = os.path.join(os.getcwd(), 'transit_output/storymap')
 figure_path = os.path.join(os.getcwd(), 'figures')
-incremental_output_path = os.path.join(output_path, 'incremental')
+paper_output_path = os.path.join(os.getcwd(), 'transit_output/paper') # separate analysis for paper
 
 if not(os.path.exists(base_path)):
     raise Exception(f'transit_data directory not found. It should be a subdirectory in {os.getcwd()}.')
 if not(os.path.exists(gtfs_path)):
     raise Exception(f'gtfs directory not found. It should be a subdirectory in {base_path}.')
-for path in [output_path, incremental_output_path, figure_path]:
+for path in [output_path, paper_output_path, figure_path]:
     if not(os.path.exists(path)):
         os.mkdir(path)
 
@@ -307,7 +307,7 @@ def load_and_combine_gtfs(gtfs_path, year, include_brt=True):
         rail_ferry_brt_stations=combined_rail_ferry_brt_stations        
     )
 
-def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
+def rail_ferry_brt(feed, year, mode='maximal', restrict_parcels=False, include_planned=False):
     """Step 2
     Identifies rail, ferry, and BRT stops from GTFS data.
     This step identifies transit stops that serve rail, light rail, subway, ferry, or some BRT routes. 
@@ -327,6 +327,7 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
     if isinstance(mode, list):
         assert all([mm in stops_increments for mm in mode])
 
+    assert include_planned in [False, 'all', 'rail']
     routes_to_include = [item for sublist in gtfs_route_types.values() for item in sublist]
     if mode=='minimal' or (isinstance(mode, list) and 'railBRT_included' not in mode):
         routes_to_include = [rr for rr in routes_to_include if rr not in minimal_route_types_excluded]
@@ -354,7 +355,7 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
         fns += [('amtrak.zip','amtrak')]
     if mode=='maximal' or 'subway_entrances' in mode:
         fns += [('subway_entrances_'+year+'.zip','subway_entrance')]
-    if include_planned:
+    if include_planned == 'all': # for the storymap
         assert year=='2025'
         fns+=[('CAHSR.zip','hsr'),
                 ('MPO_planned/2020_MTP_SCS_Planned_Major_Transit_Stops_SACOG.shp','SACOG'),
@@ -362,10 +363,8 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
                 ('MPO_planned/Major_Transit_Stops_in_the_SCAG_Region_for_plan_year_2050.shp','SCAG'),
                 ('MPO_planned/TPA_stops_2035build_SANDAG.shp','SANDAG'),
                 ('MPO_planned/transitstops_2021_existing_planned_MTC.shp','MTC'),]
-    if 'planned_transit' in mode:
-        # this is subtly different from include_planned (which was for the storymap)
-        # uses a subset of the stations that are NOT open
-        assert year=='2025' and include_planned is False
+    if include_planned == 'rail': # for the paper version
+        assert year=='2025'
         fns+=[('CAHSR.zip','hsr'),
                 ('MPO_planned/MPO_planned_rail_only/SACOG_rail_planned.zip','SACOG'),
                 ('MPO_planned/MPO_planned_rail_only/SCAG_rail_planned.zip','SCAG'),
@@ -382,7 +381,7 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
             raise Exception('CRS missing from ', fn)
         rail_gdf.to_crs('EPSG:4326', inplace=True)
         if 'amtrak' in fn:
-            rail_gdf = rail_gdf[(rail_gdf.StnType=='TRAIN') & (rail_gdf.State=='CA') & (rail_gdf.StaType!='Curbside Bus Stop only (no shelter)')]
+            rail_gdf = (rail_gdf[(rail_gdf.StnType=='TRAIN') & (rail_gdf.State=='CA') & (rail_gdf.StaType!='Curbside Bus Stop only (no shelter)')]).copy()
             rail_gdf['stop_name'] = rail_gdf.StationNam
             rail_gdf['new_stop_id'] = 'amtrak_'+rail_gdf.StationNam.str.lower().str.replace(', ','_').str.replace(' ','_')
         elif 'CAHSR' in fn:
@@ -392,8 +391,8 @@ def rail_ferry_brt(feed, year, mode='maximal', include_planned=False):
             rail_gdf['stop_name'] = None
             rail_gdf['new_stop_id'] = prefix+'_'+rail_gdf.index.astype(str)
 
-        if 'parcels' in fn and 'parcels' in mode:
-            # this is the incremental analysis. Need to restrict the parcels to the stations
+        if restrict_parcels and 'parcels' in fn:
+            # this is the paper version of the analysis. Need to restrict the parcels to the stations
             # that we are actually including in the analysis, using a spatial join
             # we could match by name, but that's not perfect either
             union_geom = rail_ferry_brt_gdf.to_crs(32611).union_all() # all rail/BRT stations
@@ -835,7 +834,7 @@ def run_transit_zoning_pipeline(gtfs_path=gtfs_path, output_path=output_path, ye
 
         if year=='2025' and mode=='maximal':
             # run a second time with the planned transit too
-            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=mode, include_planned=True)
+            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=mode, include_planned='all')
             merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=mode, include_planned=True, output_path=output_path)
             buffered = buffer_transit_stops(merged, year, fn_suffix=mode, include_planned=True, output_path=output_path)
 
@@ -874,24 +873,52 @@ def export_all_routes():
     df.sort_values(by=cols, inplace=True)
     df[cols].to_csv(os.path.join(output_path, 'all_routes.csv'), index=False)
 
-def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
-    """runs incremental changes from maximal to minimal
-        stores the area under each
+def paper_pipeline():
+    """For the journal article, not the storymap. 
+"""
+    incremental_analysis()
+    increments_figure()
+
+    frequency_analysis()
+    frequency_figure()
+
+    # change over time
+    # difference from the storymap version: 
+    #  - station parcels are only included if they are close to an existing stop 
+    #  - different output path
+    #  - don't run planned   
+    for year in yearlist:
+        feed = load_and_combine_gtfs(gtfs_path, year)
+    
+        for mode in ['minimal','maximal']:
+            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=mode, restrict_parcels=True)
+            bus_peaks = bus_stops_peak_hours(feed, mode=mode)
+            bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode=mode)
+
+            merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=mode, output_path=paper_output_path)
+            buffered = buffer_transit_stops(merged, year, fn_suffix=mode, output_path=paper_output_path)
+
+    report_findings()
+
+def incremental_analysis(gtfs_path=gtfs_path, year='2025'):
+    """This runs incremental changes from maximal to minimal
+        and  stores the area under each
     Note: there are some edge cases, with stops that are included under minimal but not later stages
     For example: a more generous peak-hour definition includes some routes at a stop
     Then, that route isn't available to be "near" a second route at that stop.  
     """
-    
+
     feed = load_and_combine_gtfs(gtfs_path, year)
     results_individual = {}
     results_cumulative = {}
 
     for increment in all_increments:
+        include_planned = 'rail' if increment=='planned_transit' else False
         # run with just that increment
         if increment in stops_increments:
-            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=[increment])
+            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=[increment], restrict_parcels=True, include_planned=include_planned)
         else:
-            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode='minimal')
+            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode='minimal', restrict_parcels=True)
 
         if increment in peaks_increments:
             bus_peaks = bus_stops_peak_hours(feed, mode=[increment])
@@ -903,8 +930,8 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
         else:
             bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
 
-        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=increment, output_path=incremental_output_path)
-        buffered = buffer_transit_stops(merged, year, fn_suffix=increment, output_path=incremental_output_path)
+        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=increment, output_path=paper_output_path)
+        buffered = buffer_transit_stops(merged, year, fn_suffix=increment, output_path=paper_output_path)
         # calculate area under Albers and store
         results_individual[increment] = float((buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000).iloc[0])
 
@@ -913,9 +940,9 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
 
         cumulative_stops_increments = list(set(cumulative_increments).intersection(stops_increments))
         if len(cumulative_stops_increments)>0:
-            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=cumulative_stops_increments)
+            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode=cumulative_stops_increments, restrict_parcels=True, include_planned=include_planned)
         else:
-            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode='minimal')
+            rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode='minimal', restrict_parcels=True)
 
         cumulative_peaks_increments = list(set(cumulative_increments).intersection(peaks_increments))
         if len(cumulative_peaks_increments)>0:
@@ -929,8 +956,8 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
         else:
             bus_intersections, _ = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
 
-        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix='cum_'+increment, output_path=incremental_output_path)
-        buffered = buffer_transit_stops(merged, year, fn_suffix='cum_'+increment, output_path=incremental_output_path)
+        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix='cum_'+increment, output_path=paper_output_path)
+        buffered = buffer_transit_stops(merged, year, fn_suffix='cum_'+increment, output_path=paper_output_path)
 
         # now store the area of buffered
         results_cumulative[increment] = float((buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000).iloc[0])
@@ -942,14 +969,12 @@ def run_incremental_changes(gtfs_path=gtfs_path, year='2025'):
     results_individual['cumulative'] = False
     result = pd.concat([results_individual,results_cumulative ])
     result.index.name = 'increment'
-    result.to_csv(incremental_output_path+'/incremental_area.csv')
-
-    increments_figure()
+    result.to_csv(paper_output_path+'/incremental_area.csv')
 
 def increments_figure():
     """Figure for journal article of the individual and cumulative contribution of each increment"""
 
-    label_dict = {'minimal':'Baseline', 'peak_definition': 'Expand peak\ndefinition',
+    label_dict = {'minimal':'Baseline (minimal interpretation)', 'peak_definition': 'Expand peak\ndefinition',
                   'consolidate_infrequent': 'Merge infrequent\nroutes',
                   'stop_distance': 'Increase\ntransfer distance',
                   'intersecting_stops': 'Include\nshared stops',
@@ -958,7 +983,7 @@ def increments_figure():
                   'parcels': 'Map stations\nas parcels',
                   'planned_transit': 'Add planned\nrail transit'}
 
-    df = pd.read_csv(incremental_output_path+'/incremental_area.csv', index_col='increment')
+    df = pd.read_csv(paper_output_path+'/incremental_area.csv', index_col='increment')
     baseline = df[df.cumulative].loc['minimal','area_km2']
     df['pct_increase'] = (df.area_km2 - baseline) / baseline * 100
 
@@ -998,7 +1023,7 @@ def increments_figure():
 
     ax.tick_params(axis='x')
     ax.set_yticks([])
-    ax.set_xlabel('Land area covered by zoning incentives (sq km)')
+    ax.set_xlabel('Land area covered by zoning incentives (km\N{SUPERSCRIPT TWO})')
 
     plt.tight_layout()
     fn = figure_path+'/cumulative_changes'
@@ -1011,7 +1036,7 @@ def frequency_analysis(gtfs_path=gtfs_path, year='2025'):
 
     areas, n_intersections = {}, {}
     feed = load_and_combine_gtfs(gtfs_path, year)
-    rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode='minimal')
+    rail_ferry_brt_stops = rail_ferry_brt(feed, year, mode='minimal', restrict_parcels=True)
     
     # frequency is defined in terms of headways (mins between buses)
     # averaged over the AM and PM hours
@@ -1019,8 +1044,8 @@ def frequency_analysis(gtfs_path=gtfs_path, year='2025'):
         print(f'\nAnalyzing {frequency} minute frequency')
         bus_peaks = bus_stops_peak_hours(feed, mode='minimal', frequency=frequency)
         bus_intersections, n_intersections[frequency] = identify_bus_stop_intersections(feed, bus_peaks, mode='minimal')
-        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=f'frequency{frequency}', output_path=incremental_output_path)
-        buffered = buffer_transit_stops(merged, year, fn_suffix=f'frequency{frequency}', output_path=incremental_output_path)
+        merged = merge_transit_stops(rail_ferry_brt_stops, bus_intersections, year, fn_suffix=f'frequency{frequency}', output_path=paper_output_path)
+        buffered = buffer_transit_stops(merged, year, fn_suffix=f'frequency{frequency}', output_path=paper_output_path)
         areas[frequency] = float((buffered.to_crs('ESRI:102008').dissolve().area / 1000 / 1000).iloc[0])
 
     areas = pd.DataFrame.from_dict(areas, orient='index',columns=['area_km2'])
@@ -1028,17 +1053,15 @@ def frequency_analysis(gtfs_path=gtfs_path, year='2025'):
     results = areas.join(n_intersections)
     results.index.name = 'frequency'
 
-    results.to_csv(incremental_output_path+'/frequency_area.csv')
-
-    frequency_figure()
+    results.to_csv(paper_output_path+'/frequency_area.csv')
 
 def frequency_figure():
     """Figure for journal article on the impact of increasing frequency"""
-    df = pd.read_csv(incremental_output_path+'/frequency_area.csv', index_col='frequency')
+    df = pd.read_csv(paper_output_path+'/frequency_area.csv', index_col='frequency')
 
     # get value for horizontal lines
     busrail = df.loc[1,'area_km2']
-    minimal = pd.read_csv(incremental_output_path+'/incremental_area.csv', index_col='increment')
+    minimal = pd.read_csv(paper_output_path+'/incremental_area.csv', index_col='increment')
     minimal = minimal[minimal.cumulative].loc['minimal','area_km2']
 
     txt1 = f'{busrail:.0f} km\N{SUPERSCRIPT TWO} with\nrail, BRT, and\nferry only'
@@ -1055,7 +1078,7 @@ def frequency_figure():
     ax2.set_yticks(range(0,7000,2000))
     
     ax.set_xlabel('Peak headway (minutes)')
-    ax.set_ylabel('Land area (sq km)')
+    ax.set_ylabel('Land area (km\N{SUPERSCRIPT TWO})')
     ax2.set_ylabel('Number of bus stops', rotation=270, labelpad=15)
     xlims = (-0.5,29.5)
     ax.set_xlim(xlims)
@@ -1072,6 +1095,34 @@ def frequency_figure():
     fig.savefig(fn+'.jpg', dpi=600)
     fig.savefig(fn+'.svg')
 
+def report_findings():
+    """calculate various findings to include in the paper"""
+
+    outfn = paper_output_path+'/key_findings.txt'
+    def outtxt(txt):
+        with open(outfn,'a') as f:
+            f.writeline(txt+'\n') 
+            print(txt)
+
+    with open(outfn, 'w') as f:
+        f.write(f'Key findings reported on {date.today()}')
+
+    df = pd.read_csv(paper_output_path+'/incremental_area.csv', index_col='increment')
+    cumulative = (df[df.cumulative]['area_km2']).copy()
+    standalone = (df[df.cumulative==False]['area_km2']).copy()
+
+    # much do definitions make a difference
+    minimal, maximal = cumulative.loc['minimal'], cumulative.loc['planned_transit']
+    outtxt(f'Area varies by a factor of {(maximal / minimal):.2f} based on definitional differences')
+
+    # knob with the greatest effect
+    standalone.sort_values(inplace=True)
+    outtxt(f'Knob with greatest effect: {standalone.index[-1]}')
+    outtxt(f'Increase area by {(standalone.iloc[-1]-minimal)/minimal*100:.2f}/% from {minimal:.0f} to {standalone.iloc[-1]:.0f}')
+
+    # range of other effects
+    outtxt(f'Other knobs increase area by {(standalone.iloc[1]-minimal)/minimal*100:.2f}/% to {(standalone.iloc[-2]-minimal)/minimal*100:.2f}/%')
+
 
 if __name__ == "__main__":
 
@@ -1080,5 +1131,5 @@ if __name__ == "__main__":
 
     # for the academic paper (breaks the differences down into increments)
     frequency_analysis()
-    run_incremental_changes()
+    paper_pipeline()
     
