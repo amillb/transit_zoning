@@ -56,6 +56,7 @@ for path in [output_path, paper_output_path, figure_path]:
 # each year's data is a subfolder in /GTFS
 yearlist = [fn.name for fn in os.scandir(gtfs_path) if fn.is_dir()]
 print(f"Found GTFS data for the following years: {', '.join(yearlist)}")
+sqkm2miles = 0.38610216
 
 # define the individual steps that make up the differences between minimal and maximal
 # separate out increments by the function that they are used in
@@ -1135,6 +1136,10 @@ def report_findings():
     outtxt(f'Difference: {diff*0.386102:.0f} sq. miles')
     for f in [1, 4, 30]:
         outtxt(f'Number of stops at {f} mins: {freq.loc[f, 'n_intersections']}')
+
+    # how many sq km does each min add?
+    onemin = (freq.loc[25,'area_km2'] - freq.loc[10,'area_km2']) / (25-10)
+    outtxt(f'Each 1-min change in the threshold (between 10 and 25 mins) adds {onemin:.0f} sq km ({onemin*sqkm2miles:.0f} sq miles)')
 
     # change over time
     for m in ['minimal', 'maximal']:
